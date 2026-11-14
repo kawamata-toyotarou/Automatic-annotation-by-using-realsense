@@ -39,3 +39,4 @@
 20.realsense2で画面中央の深度をメートルで表示するプログラムrealsense.pyを作成
 21..\.venv\Scripts\python.exe .\realsensa.py
 22.realsenseを用いて深度マップを作成した
+23.realsenseを用いてカラー映像を読み取れた

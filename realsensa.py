@@ -6,13 +6,19 @@ import pyrealsense2  # PythonからRealSenseを操作するためのライブラ
 pipeline = pyrealsense2.pipeline() # pipeline はカメラからデータを受け取るためのオブジェクトを作成
 config = pyrealsense2.config()     # どの種類のデータを、どんな設定で受け取るかを指定するオブジェクトを作成
 config.enable_stream(pyrealsense2.stream.depth, 640, 480, pyrealsense2.format.z16, 30) # 深度画像・幅640・高さ480・16ビット形式・毎秒30フレームの順で指定
-
+config.enable_stream(pyrealsense2.stream.color, 640, 480, pyrealsense2.format.bgr8, 30)# stream.color はカラー映像、`bgr8` は青・緑・赤をそれぞれ8ビットで持つ形式
 pipeline.start(config)             # config の設定を使って、カメラからのデータ受信を開始
 
 try:
     while True:
         frames = pipeline.wait_for_frames() # 新しいフレームのまとまりが届くまで待つ、5秒でタイムアウト
         depth = frames.get_depth_frame()    # 届いたフレームのまとまりから、深度画像を取り出し
+
+        color = frames.get_color_frame()
+        if color:
+            color_image = numpy.asanyarray(color.get_data())
+            cv2.imshow("Color", color_image)# stream.color はカラー映像、`bgr8` は青・緑・赤をそれぞれ8ビットで持つ形式
+
         if not depth:
             continue
 
@@ -31,7 +37,7 @@ try:
                                                        # 幅640、高さ480なら、画面の各位置に対応する 320,240個の数値があり、配列に 
         depth_m = raw_depth * depth.get_units()        # カメラの数値が1増えると、実際の奥行きが何メートル増えるかを返すので生の値をメートルに変換
 
-        scaled = numpy.clip(depth_m / 2.0, 0, 1)       # 色分けする範囲を0〜4 mに設定
+        scaled = numpy.clip(depth_m / 4.0, 0, 1)       # 色分けする範囲を0〜4 mに設定
         depth_8bit = (scaled * 255).astype(numpy.uint8)# 0〜1 の値に255を掛けて、OpenCVの色付けに使う 0〜255 の整数に変換
 
         depth_map = cv2.applyColorMap(depth_8bit, cv2.COLORMAP_TURBO) # 配色設定
