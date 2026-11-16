@@ -3,6 +3,12 @@ import numpy         # たくさんの数値を配列にしてまとめて計算
 import time          # time.sleep関数を使用するため
 import pyrealsense2  # PythonからRealSenseを操作するためのライブラリを読み込み
 
+clicked_point = None
+def on_mouse(event, x, y, flags, param): 
+    global clicked_point              # global は、関数の中から、そのファイルの一番外側で定義した変数に代入するための宣言
+    if event == cv2.EVENT_LBUTTONDOWN:# cv2.EVENT_LBUTTONDOWN は、マウスの左ボタンを押した瞬間を表すOpenCVの定数
+        clicked_point = (x, y)
+
 pipeline = pyrealsense2.pipeline() # pipeline はカメラからデータを受け取るためのオブジェクトを作成
 config = pyrealsense2.config()     # どの種類のデータを、どんな設定で受け取るかを指定するオブジェクトを作成
 config.enable_stream(pyrealsense2.stream.depth, 640, 480, pyrealsense2.format.z16, 30) # 深度画像・幅640・高さ480・16ビット形式・毎秒30フレームの順で指定
@@ -11,6 +17,9 @@ pipeline.start(config)             # config の設定を使って、カメラか
 align_to_color = pyrealsense2.align(pyrealsense2.stream.color) # stream.color はカラー画像の座標を基準にするという指定
 
 try:
+    cv2.namedWindow("Color")                # ウィンドウの作成
+    cv2.setMouseCallback("Color", on_mouse) # マウス操作があったらon_mouse関数を呼び出す
+
     while True:
         frames = pipeline.wait_for_frames() # 新しいフレームのまとまりが届くまで待つ、5秒でタイムアウト
 
@@ -33,8 +42,13 @@ try:
             continue
 
         color_image = numpy.asanyarray(color.get_data()).copy()   # .copy()で独立したコピーを作り、そのコピーに丸や文字を書き込み
-        x = color.get_width() // 2 
-        y = color.get_height() // 2
+        
+        if clicked_point is None:
+            x = color.get_width() // 2 
+            y = color.get_height() // 2
+        else:
+            x, y = clicked_point
+
         distance = depth.get_distance(x, y)                       # その座標の1ピクセルの深度をメートルで返す関数
 
         text = f"{distance:.2f} m" if distance > 0 else "No depth"# JavaScriptの 条件 ? 値A : 値B に近く、Pythonでは 値A if 条件 else 値B と書く
