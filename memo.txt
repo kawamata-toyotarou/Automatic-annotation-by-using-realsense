@@ -40,3 +40,4 @@
 21..\.venv\Scripts\python.exe .\realsensa.py
 22.realsenseを用いて深度マップを作成した
 23.realsenseを用いてカラー映像を読み取れた
+24.color画像に中心距離を追加

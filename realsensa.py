@@ -8,19 +8,39 @@ config = pyrealsense2.config()     # どの種類のデータを、どんな設�
 config.enable_stream(pyrealsense2.stream.depth, 640, 480, pyrealsense2.format.z16, 30) # 深度画像・幅640・高さ480・16ビット形式・毎秒30フレームの順で指定
 config.enable_stream(pyrealsense2.stream.color, 640, 480, pyrealsense2.format.bgr8, 30)# stream.color はカラー映像、`bgr8` は青・緑・赤をそれぞれ8ビットで持つ形式
 pipeline.start(config)             # config の設定を使って、カメラからのデータ受信を開始
+align_to_color = pyrealsense2.align(pyrealsense2.stream.color) # stream.color はカラー画像の座標を基準にするという指定
 
 try:
     while True:
         frames = pipeline.wait_for_frames() # 新しいフレームのまとまりが届くまで待つ、5秒でタイムアウト
-        depth = frames.get_depth_frame()    # 届いたフレームのまとまりから、深度画像を取り出し
 
-        color = frames.get_color_frame()
-        if color:
-            color_image = numpy.asanyarray(color.get_data())
-            cv2.imshow("Color", color_image)# stream.color はカラー映像、`bgr8` は青・緑・赤をそれぞれ8ビットで持つ形式
+        aligned_frames = align_to_color.process(frames) # 深度データをカラー画像の座標に対応づけ
 
-        if not depth:
+        #depth = frames.get_depth_frame()    # 届いたフレームのまとまりから、深度画像を取り出し
+        #color = frames.get_color_frame()    # 届いたフレームのまとまりから、カラー画像を取り出し
+
+
+        # if color:
+        #     color_image = numpy.asanyarray(color.get_data())
+        #     cv2.imshow("Color", color_image)# stream.color はカラー映像、`bgr8` は青・緑・赤をそれぞれ8ビットで持つ形式
+
+        # if not depth:
+        #     continue
+        depth = aligned_frames.get_depth_frame()
+        color = aligned_frames.get_color_frame()
+
+        if not depth or not color:
             continue
+
+        color_image = numpy.asanyarray(color.get_data()).copy()   # .copy()で独立したコピーを作り、そのコピーに丸や文字を書き込み
+        x = color.get_width() // 2 
+        y = color.get_height() // 2
+        distance = depth.get_distance(x, y)                       # その座標の1ピクセルの深度をメートルで返す関数
+
+        text = f"{distance:.2f} m" if distance > 0 else "No depth"# JavaScriptの 条件 ? 値A : 値B に近く、Pythonでは 値A if 条件 else 値B と書く
+        cv2.circle(color_image, (x, y), 5, (0, 255, 0), 2)        # color_image の (x, y) に、半径5ピクセル、線の太さ2ピクセルの丸を描く
+        cv2.putText(color_image, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)# 同じ画像に text を書き込み、(10, 30)`は文字の描画位置。後ろの引数は順に フォント、文字の大きさ、色、線の太さ
+        cv2.imshow("Color", color_image)                          # 丸と文字を書き込んだ画像を Color ウィンドウに表示
 
         # x = depth.get_width()  // 2         # 画像の幅を半分にして、中央の横座標を求める
         # y = depth.get_height() // 2         # 画像の高さを半分にして、中央の縦座標を求める
