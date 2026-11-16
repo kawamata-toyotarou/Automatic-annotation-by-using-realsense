@@ -2,12 +2,15 @@ import cv2           # opencvを読み込み
 import numpy         # たくさんの数値を配列にしてまとめて計算できるPythonライブラリ
 import time          # time.sleep関数を使用するため
 import pyrealsense2  # PythonからRealSenseを操作するためのライブラリを読み込み
+from ultralytics import YOLO
 
 clicked_point = None
 def on_mouse(event, x, y, flags, param): 
     global clicked_point              # global は、関数の中から、そのファイルの一番外側で定義した変数に代入するための宣言
     if event == cv2.EVENT_LBUTTONDOWN:# cv2.EVENT_LBUTTONDOWN は、マウスの左ボタンを押した瞬間を表すOpenCVの定数
         clicked_point = (x, y)
+
+model = YOLO("yolo26n.pt")
 
 pipeline = pyrealsense2.pipeline() # pipeline はカメラからデータを受け取るためのオブジェクトを作成
 config = pyrealsense2.config()     # どの種類のデータを、どんな設定で受け取るかを指定するオブジェクトを作成
@@ -41,7 +44,10 @@ try:
         if not depth or not color:
             continue
 
-        color_image = numpy.asanyarray(color.get_data()).copy()   # .copy()で独立したコピーを作り、そのコピーに丸や文字を書き込み
+        #color_image = numpy.asanyarray(color.get_data()).copy()   # .copy()で独立したコピーを作り、そのコピーに丸や文字を書き込み
+        color_image = numpy.asanyarray(color.get_data())
+        result = model.predict(color_image, classes=[0], save=False, verbose=False)[0]
+        color_image = result.plot()                                 # result.plot() が元の画像をコピーし、そのコピーに人物の枠を描いて返す
         
         if clicked_point is None:
             x = color.get_width() // 2 
